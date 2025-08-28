@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Website Al-Qur'an + Adzan</title>
+  <style>
+    :root{--bg:#0b1220;--card:#0f1724;--accent:#0ea5a4;--muted:#9aa4b2;color-scheme:dark}
+    body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:linear-gradient(180deg,#031026 0%, #07132b 100%); color:#e6eef6; margin:0; padding:24px}
+    .container{max-width:1100px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    h1{margin:0;font-size:1.5rem}
+    .card{background:var(--card);border-radius:12px;padding:16px;margin-top:16px;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:16px}
+    label{font-size:.85rem;color:var(--muted)}
+    input,select,button{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:transparent;color:inherit}
+    button{cursor:pointer}
+    ul{list-style:none;padding:0;margin:0}
+    .timing{display:flex;gap:8px;align-items:center}
+    .surah-list{max-height:380px;overflow:auto}
+    .verse{padding:8px;border-radius:8px;margin:8px 0;background:linear-gradient(90deg,rgba(255,255,255,.02),transparent)}
+    footer{margin-top:22px;color:var(--muted);font-size:.85rem;text-align:center}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .small{font-size:.85rem;color:var(--muted)}
+    .hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:12px}
+    .hero img{max-width:200px;border-radius:16px;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    .hero-text{max-width:600px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Website Al-Qur'an + Adzan</h1>
+    </header>
+
+    <div class="hero">
+      <img src="https://cdn.pixabay.com/photo/2017/06/22/21/25/kids-2432866_1280.jpg" alt="Anak-anak mengaji" />
+      <div class="hero-text">
+        <h2>Belajar Al-Qur'an dengan Semangat</h2>
+        <p class="small">Website ini menyediakan Al-Qur'an digital lengkap dengan jadwal adzan Subuh & adzan harian. Semoga bermanfaat untuk menambah semangat ibadah.</p>
+      </div>
+    </div>
+
+    <div class="card grid">
+      <section>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div>
+            <label>Lokasi (opsional)</label>
+            <div class="small">Gunakan lokasi otomatis atau masukkan Latitude & Longitude manual.</div>
+          </div>
+          <div class="controls">
+            <button id="btnUseLocation">Gunakan Lokasi Saya</button>
+            <button id="btnFetchManual">Ambil Koordinat</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input id="lat" placeholder="Latitude" />
+          <input id="lon" placeholder="Longitude" />
+          <select id="method">
+            <option value="2">Method: Muslim World League</option>
+            <option value="4">Method: Umm al-Qura</option>
+            <option value="3">Method: Egyptian</option>
+          </select>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 8px 0">Jadwal Sholat Hari Ini</h3>
+          <div id="timings" class="small">Tekan tombol untuk mengambil jadwal...</div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <button id="btnSchedule">Jadwalkan Adzan</button>
+            <button id="btnCancel">Batalkan Jadwal</button>
+            <button id="btnTestFajr">Tes Adzan Subuh</button>
+            <button id="btnTestAdzan">Tes Adzan Biasa</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 8px 0">Al-Qur'an</h3>
+          <div class="small">Klik surah untuk melihat ayat-ayatnya.</div>
+          <div style="display:flex;gap:12px;margin-top:8px">
+            <input id="surahSearch" placeholder="Cari surah" />
+            <button id="btnReloadSurah">Muat Ulang</button>
+          </div>
+          <div class="surah-list" id="surahList"></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <h3 style="margin:0 0 8px 0">Pilih Surah</h3>
+          <div id="surahContent">Pilih surah di kiri untuk melihat ayat.</div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 8px 0">Pengaturan Adzan</h3>
+          <label>Adzan Subuh (URL)</label>
+          <input id="fajrAudioUrl" placeholder="URL adzan Subuh" />
+          <label style="margin-top:8px">Adzan Biasa (URL)</label>
+          <input id="regularAudioUrl" placeholder="URL adzan biasa" />
+          <div class="small" style="margin-top:8px">Jika kosong, sistem akan memainkan nada beep sederhana.</div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>
+      Website Al-Qur'an + Adzan © 2025 — dibuat untuk belajar dan ibadah.
+    </footer>
+  </div>
+
+  <script>
+    function el(id){return document.getElementById(id)}
+    function beep(duration=1500, freq=880){
+      try{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration/1000);
+        setTimeout(()=>{o.stop(); ctx.close()}, duration);
+      }catch(e){console.warn('Beep failed',e)}
+    }
+    async function playAudioOrBeep(url, freq=660){
+      if(url){
+        try{ await new Audio(url).play() }catch{ beep(2000,freq) }
+      } else { beep(2000,freq) }
+    }
+    async function fetchPrayerTimes(lat, lon, method=2){
+      const today = new Date();
+      const ts = Math.floor(today.getTime()/1000);
+      const url = `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lon}&method=${method}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.data.timings;
+    }
+    async function loadSurahList(){
+      const listEl = el('surahList'); listEl.innerHTML = 'Memuat...';
+      try{
+        const r = await fetch('https://api.quran.sutanlab.id/surah');
+        const j = await r.json();
+        listEl.innerHTML = '';
+        j.data.forEach(s=>{
+          const btn=document.createElement('button');
+          btn.textContent=`${s.number}. ${s.name.transliteration.id} (${s.numberOfVerses} ayat)`;
+          btn.style.width='100%';btn.style.margin='4px 0';btn.className='small';
+          btn.onclick=()=>loadSurah(s.number);
+          listEl.appendChild(btn);
+        })
+      }catch{listEl.innerHTML='Gagal memuat daftar surah'}
+    }
+    async function loadSurah(n){
+      const dst = el('surahContent'); dst.innerHTML = 'Memuat...';
+      try{
+        const r = await fetch('https://api.quran.sutanlab.id/surah/' + n);
+        const j = await r.json();
+        const s=j.data;
+        dst.innerHTML=`<h4>${s.name.transliteration.id} — ${s.name.short}</h4>`;
+        s.verses.forEach(v=>{
+          const d=document.createElement('div'); d.className='verse';
+          d.innerHTML=`<div style="font-weight:600">${v.number.inSurah}. ${v.text.arab}</div><div class="small">${v.translation.id}</div>`;
+          dst.appendChild(d);
+        })
+      }catch{dst.innerHTML='Gagal memuat surah'}
+    }
+    let scheduledTimeouts=[];
+    function clearSchedules(){scheduledTimeouts.forEach(id=>clearTimeout(id));scheduledTimeouts=[]}
+    function scheduleAdhans(t){
+      clearSchedules();
+      const fajrUrl=el('fajrAudioUrl').value.trim();
+      const regUrl=el('regularAudioUrl').value.trim();
+      const keys=['Fajr','Dhuhr','Asr','Maghrib','Isha'];
+      const now=new Date();
+      for(const k of keys){
+        const time=t[k];
+        if(!time) continue;
+        const cleaned=time.match(/(\d{1,2}:\d{2})/);
+        if(!cleaned) continue;
+        const [hh,mm]=cleaned[0].split(':').map(x=>parseInt(x));
+        const target=new Date(now.getFullYear(),now.getMonth(),now.getDate(),hh,mm,0);
+        if(target<=now) continue;
+        const ms=target-now;
+        const url=(k==='Fajr')?fajrUrl:regUrl||fajrUrl;
+        const id=setTimeout(()=>{playAudioOrBeep(url,(k==='Fajr')?550:880)},ms);
+        scheduledTimeouts.push(id);
+      }
+    }
+    el('btnUseLocation').onclick=()=>{
+      if(!navigator.geolocation){alert('Geolocation tidak didukung');return}
+      navigator.geolocation.getCurrentPosition(pos=>{
+        el('lat').value=pos.coords.latitude.toFixed(6);
+        el('lon').value=pos.coords.longitude.toFixed(6);
+      },err=>alert('Gagal: '+err.message))
+    }
+    el('btnFetchManual').onclick=async()=>{
+      const lat=parseFloat(el('lat').value),lon=parseFloat(el('lon').value),method=el('method').value;
+      if(!lat||!lon){alert('Isi koordinat');return}
+      el('timings').textContent='Mengambil...';
+      try{
+        const t=await fetchPrayerTimes(lat,lon,method);
+        let html=''; for(const k in t) html+=`<div class="timing"><strong style="width:90px">${k}</strong><div>${t[k]}</div></div>`;
+        el('timings').innerHTML=html;
+        el('timings').dataset.timings=JSON.stringify(t);
+      }catch(e){el('timings').textContent='Gagal: '+e.message}
+    }
+    el('btnSchedule').onclick=()=>{const d=el('timings').dataset.timings;if(!d){alert('Ambil jadwal dulu');return}scheduleAdhans(JSON.parse(d));alert('Adzan dijadwalkan')}
+    el('btnCancel').onclick=()=>{clearSchedules();alert('Dibatalkan')}
+    el('btnTestFajr').onclick=()=>playAudioOrBeep(el('fajrAudioUrl').value.trim(),550)
+    el('btnTestAdzan').onclick=()=>playAudioOrBeep(el('regularAudioUrl').value.trim(),880)
+    el('btnReloadSurah').onclick=loadSurahList
+    el('surahSearch').oninput=function(){const q=this.value.toLowerCase();Array.from(el('surahList').children).forEach(b=>b.style.display=b.textContent.toLowerCase().includes(q)?'block':'none')}
+    loadSurahList()
+  </script>
+</body>
+</html>
